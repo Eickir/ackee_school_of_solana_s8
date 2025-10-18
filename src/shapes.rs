@@ -47,7 +47,7 @@ impl Rectangle {
             return Err(Error::InvalidWidth)
         } 
 
-        if width.is_sign_negative() { 
+        if height.is_sign_negative() { 
             return Err(Error::InvalidHeight)
         }
 
