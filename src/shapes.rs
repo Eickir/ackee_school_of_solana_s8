@@ -40,19 +40,45 @@ pub enum Error {
 // All methods should return the corresponding error when invalid values are provided.
 impl Rectangle {
     pub fn new(width: f64, height: f64) -> Result<Self, Error> {
-        todo!()
+
+        if width.is_sign_negative() { 
+            return Err(Error::InvalidWidth)
+        } 
+
+        if width.is_sign_negative() { 
+            return Err(Error::InvalidHeight)
+        }
+
+        Ok(Self {
+            width, 
+            height
+        })
+
     }
     pub fn set_width(&mut self, width: f64) -> Result<(), Error> {
-        todo!()
+        
+        if width.is_sign_negative() { 
+            return Err(Error::InvalidWidth)
+        } 
+
+        self.width = width;
+        Ok(())
     }
     pub fn set_height(&mut self, height: f64) -> Result<(), Error> {
-        todo!()
+
+        if height.is_sign_negative() { 
+            return Err(Error::InvalidHeight)
+        }
+
+        self.height = height;
+        Ok(())
+
     }
     pub fn get_width(&self) -> f64 {
-        todo!()
+        self.width
     }
     pub fn get_height(&self) -> f64 {
-        todo!()
+        self.height
     }
 }
 
