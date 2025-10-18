@@ -134,11 +134,11 @@ impl Shape for Rectangle {
 impl Shape for Circle {
 
     fn area(&self) -> f64 {
-        self.radius.exp2() * PI
+        self.get_radius() * self.get_radius() * PI
     }
 
     fn perimeter(&self) -> f64 {
-        self.radius * 2.0 * PI 
+        self.get_radius() * 2.0 * PI 
     }
 
 }
