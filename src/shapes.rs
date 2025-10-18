@@ -12,6 +12,8 @@
 /// 4. Handle validation errors properly using the Error enum
 /// 
 ///-------------------------------------------------------------------------------
+use std::f64::consts::PI;
+
 
 pub trait Shape {
     fn area(&self) -> f64;
@@ -88,16 +90,43 @@ impl Rectangle {
 // All methods should return the corresponding error when invalid values are provided.
 impl Circle {
     pub fn new(radius: f64) -> Result<Self, Error> {
-        todo!()
+        
+        if radius.is_sign_negative() { 
+            return Err(Error::InvalidRadius)
+        } 
+
+        Ok(Self {
+            radius
+        })
+
     }
     pub fn set_radius(&mut self, radius: f64) -> Result<(), Error> {
-        todo!()
+        
+        if radius.is_sign_negative() { 
+            return Err(Error::InvalidRadius)
+        } 
+
+        self.radius = radius;
+
+        Ok(())
+
     }
     pub fn get_radius(&self) -> f64 {
-        todo!()
+        self.radius
     }
 }
 
 // TODO: Implement the Shape trait for both Rectangle and Circle structs.
 // 
 // Hint: Use std::f64::consts::PI to calculate the area and circumference of the circle.
+impl Shape for Rectangle {
+
+    fn area(&self) -> f64 {
+        self.get_height() * self.get_width()
+    }
+
+    fn perimeter(&self) -> f64 {
+        (self.get_height() + self.get_width()) * 2.0
+    }
+
+}
