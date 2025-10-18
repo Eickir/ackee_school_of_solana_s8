@@ -130,3 +130,15 @@ impl Shape for Rectangle {
     }
 
 }
+
+impl Shape for Circle {
+
+    fn area(&self) -> f64 {
+        self.radius.exp2() * PI
+    }
+
+    fn perimeter(&self) -> f64 {
+        self.radius * 2.0 * PI 
+    }
+
+}
