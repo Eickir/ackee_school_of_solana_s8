@@ -25,7 +25,7 @@ pub struct Deposit<'info> {
     pub depositor: Signer<'info>,
     #[account(mut, constraint = vault.locked != false @ VaultError::VaultLocked)]
     pub vault: Account<'info, Vault>,
-    pub system_program: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 pub fn _deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {

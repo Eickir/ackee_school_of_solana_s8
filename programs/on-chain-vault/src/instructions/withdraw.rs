@@ -28,7 +28,7 @@ pub struct Withdraw<'info> {
         constraint = vault.locked != true @ VaultError::VaultLocked
         )]
     pub vault: Account<'info, Vault>,
-    pub system_program: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 pub fn _withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
