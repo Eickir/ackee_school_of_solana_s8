@@ -18,12 +18,12 @@ use crate::errors::VaultError;
 use crate::events::DepositEvent;
 
 #[derive(Accounts)]
-#[instruction(amount_to_deposit: u64)]
+#[instruction(amount: u64)]
 pub struct Deposit<'info> {
     // TODO: Add required accounts and constraints
-    #[account(mut, constraint = depositor.to_account_info().lamports() > amount_to_deposit @ VaultError::InsufficientBalance)]
-    pub depositor: Signer<'info>,
-    #[account(mut, constraint = vault.locked != false @ VaultError::VaultLocked)]
+    #[account(mut, constraint = user.to_account_info().lamports() >= amount @ VaultError::InsufficientBalance,)]
+    pub user: Signer<'info>,
+    #[account(mut, constraint = vault.locked == false @ VaultError::VaultLocked)]
     pub vault: Account<'info, Vault>,
     pub system_program: Program<'info, System>,
 }
@@ -31,12 +31,12 @@ pub struct Deposit<'info> {
 pub fn _deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     
     // TODO: Implement deposit functionality
-    let ix = transfer(&ctx.accounts.depositor.key(), &ctx.accounts.vault.key(), amount);
+    let ix = transfer(&ctx.accounts.user.key(), &ctx.accounts.vault.key(), amount);
 
     invoke(
         &ix,
         &[
-            ctx.accounts.depositor.to_account_info(),
+            ctx.accounts.user.to_account_info(),
             ctx.accounts.vault.to_account_info(),
             ctx.accounts.system_program.to_account_info(),
         ],
@@ -44,7 +44,7 @@ pub fn _deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     
     emit!(DepositEvent{
         amount: amount, 
-        user: ctx.accounts.depositor.key(), 
+        user: ctx.accounts.user.key(), 
         vault: ctx.accounts.vault.key()
     });
 
