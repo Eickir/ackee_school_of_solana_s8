@@ -21,7 +21,8 @@ pub fn remove_comment(_ctx: Context<RemoveCommentContext>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct RemoveCommentContext<'info> {
-    // TODO: Add required account constraints
+    #[account(mut)]
     pub comment_author: Signer<'info>,
+    #[account(mut, close = comment_author, has_one = comment_author.key())]
     pub comment: Account<'info, Comment>,
 }
