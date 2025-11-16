@@ -23,4 +23,8 @@ pub mod solance {
         initialize_contractor(ctx)
     }
 
+    pub fn initialize_contract_ix(ctx: Context<InitializeContract>, title: String, topic: String) -> Result<()> {
+        initialize_contract(ctx, title, topic)
+    }
+
 }
