@@ -10,10 +10,10 @@ pub fn initialize_contractor(ctx: Context<InitializeContractor>) -> Result<()> {
 
     let contractor: &mut Account<'_, Contractor> = &mut ctx.accounts.contractor_account;
 
-    require!(contractor.next_proposal_id.is_none(), SolanceError::ContractorAlreadyInitialized);
+    require!(!contractor.to_account_info().data_is_empty(), SolanceError::ContractorAlreadyInitialized);
 
     contractor.owner = ctx.accounts.contractor.key();
-    contractor.next_proposal_id = Some(0);
+    contractor.next_proposal_id = 0;
 
     emit!(ContractorInitialized {
         owner: ctx.accounts.contractor.key(),

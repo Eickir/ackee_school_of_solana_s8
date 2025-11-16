@@ -13,10 +13,10 @@ pub fn initialize_client(ctx: Context<InitializeClient>) -> Result<()> {
 
     let client_account = &mut ctx.accounts.client_account;
 
-    require!(client_account.next_contract_id.is_none(), SolanceError::ClientAlreadyInitialized);
+    require!(!client_account.to_account_info().data_is_empty(), SolanceError::ClientAlreadyInitialized);
 
     client_account.owner = ctx.accounts.client.key();
-    client_account.next_contract_id = Some(0);
+    client_account.next_contract_id = 0;
 
     emit!(ClientInitialized {
         owner: ctx.accounts.client.key(),
