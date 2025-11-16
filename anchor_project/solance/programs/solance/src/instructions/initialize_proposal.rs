@@ -37,9 +37,11 @@ pub struct InitializeProposal<'info> {
     #[account(mut)]
     pub contractor: Signer<'info>, 
     #[account(
-        mut
+        mut, 
+        constraint = contractor_account.owner == contractor.key() @ SolanceError::UnauthorizedAccount, 
     )]
     pub contract: Account<'info, Contract>,
+    #[account(mut)]
     pub contractor_account: Account<'info, Contractor>, 
     #[account(
         init, 
@@ -47,8 +49,6 @@ pub struct InitializeProposal<'info> {
         seeds = [PROPOSAL_SEED, contractor_account.key().as_ref(), contractor_account.next_proposal_id.to_le_bytes().as_ref()], 
         bump, 
         space = 8 + 32 + 32 + 8 + 8,
-        constraint = contractor_account.owner == contractor.key() @ SolanceError::UnauthorizedAccount, 
-
     )] 
     pub proposal_account: Account<'info, Proposal>, 
     pub system_program: Program<'info, System>

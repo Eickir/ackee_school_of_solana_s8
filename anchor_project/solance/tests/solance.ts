@@ -108,6 +108,15 @@ describe("solance program", () => {
         ],
         program.programId
       );
+  const second_proposal_id = new anchor.BN(1);
+  const [second_proposal_pda] = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from(PROPOSAL_SEED),              
+          contractor_pda.toBuffer(),
+          second_proposal_id.toArrayLike(Buffer, "le", 8)
+        ],
+        program.programId
+      );
   const [first_proposal_attacker_pda] = anchor.web3.PublicKey.findProgramAddressSync(
         [
           Buffer.from(PROPOSAL_SEED),              
@@ -369,46 +378,35 @@ describe("solance program", () => {
           await airdrop(provider.connection, contractor_attacker.publicKey);
 
           await program.methods
-              .initializeContractorIx()
+              .initializeContractIx(good_title_length, good_topic_length)
+              .accounts({
+                signer: client.publicKey, 
+                clientAccount: client_pda, 
+                contractAccount: second_contract_pda,
+                systemProgram: anchor.web3.SystemProgram.programId,
+              })
+              .signers([client])
+              .rpc({ commitment: "confirmed" })
+
+          await assert.rejects(
+            program.methods
+              .initializeProposalIx(amount)
               .accounts({
                 contractor: contractor_attacker.publicKey, 
-                contractorAccount: contractor_attacker_pda, 
+                contract: second_contract_pda,
+                contractorAccount: contractor_pda, 
+                proposalAccount: second_proposal_pda, 
                 systemProgram: anchor.web3.SystemProgram.programId,
               })
               .signers([contractor_attacker])
-          .rpc({ commitment: "confirmed" });   
-
-          await program.methods
-                .initializeContractIx(good_title_length, good_topic_length)
-                .accounts({
-                  signer: client.publicKey, 
-                  clientAccount: client_pda, 
-                  contractAccount: second_contract_pda,
-                  systemProgram: anchor.web3.SystemProgram.programId,
-                })
-                .signers([client])
-                .rpc({ commitment: "confirmed" });         
-
-
-        await assert.rejects( 
-          program.methods
-          .initializeProposalIx(amount)
-          .accounts({
-            contractor: contractor_attacker.publicKey, 
-            contract: second_contract_pda,
-            contractorAccount: contractor_pda, 
-            proposalAccount: first_proposal_attacker_pda, 
-            systemProgram: anchor.web3.SystemProgram.programId,
-          })
-          .signers([contractor_attacker])
-          .rpc({ commitment: "confirmed" })
-        , (err: any) => {
+              .rpc({ commitment: "confirmed" })
+            , (err: any) => {
               const anchorErr = err as anchor.AnchorError;
               if (anchorErr.error.errorCode.code === "UnauthorizedAccount") {
                 return true;
               }
               return false;
-          });        
+          });                           
 
       });
 
