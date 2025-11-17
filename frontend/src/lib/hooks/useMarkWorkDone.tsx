@@ -4,37 +4,38 @@ import { useCallback, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useSolanceProgram } from "@/lib/solana/program";
-import { getContractorPda } from "@/lib/solana/pda";
+
+const CONTRACTOR_SEED = "contractor";
 
 export function useMarkWorkDone() {
   const program = useSolanceProgram();
   const { publicKey } = useWallet();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<unknown | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  /**
-   * @param contractPda PDA du contract pour lequel le travail est terminé
-   */
   const markWorkDone = useCallback(
-    async (contractPda: PublicKey) => {
-      if (!program || !publicKey) return;
+    async (contractPk: PublicKey) => {
+      if (!program || !publicKey) throw new Error("Wallet not connected");
       setLoading(true);
       setError(null);
 
       try {
-        const contractorPda = getContractorPda(publicKey);
+        const [contractorPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from(CONTRACTOR_SEED), publicKey.toBuffer()],
+          program.programId
+        );
 
         await program.methods
           .markWorkDoneIx()
           .accounts({
             contractor: publicKey,
             contractorAccount: contractorPda,
-            contract: contractPda,
+            contract: contractPk,
           })
-          .rpc({ commitment: "confirmed" });
-      } catch (e) {
-        console.error("markWorkDone error:", e);
-        setError(e);
+          .rpc();
+      } catch (e: any) {
+        console.error("markWorkDoneIx error:", e);
+        setError(e.message ?? "Failed to mark work done");
         throw e;
       } finally {
         setLoading(false);

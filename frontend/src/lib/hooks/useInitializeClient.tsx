@@ -1,24 +1,29 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { SystemProgram } from "@solana/web3.js";
+import { SystemProgram, PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useSolanceProgram } from "@/lib/solana/program";
-import { getClientPda } from "@/lib/solana/pda";
+
+const CLIENT_SEED = "client";
 
 export function useInitializeClient() {
   const program = useSolanceProgram();
   const { publicKey } = useWallet();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<unknown | null>(null);
+  const [lastClientPda, setLastClientPda] = useState<PublicKey | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const initializeClient = useCallback(async () => {
-    if (!program || !publicKey) return;
+    if (!program || !publicKey) throw new Error("Wallet not connected");
     setLoading(true);
     setError(null);
 
     try {
-      const clientPda = getClientPda(publicKey);
+      const [clientPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from(CLIENT_SEED), publicKey.toBuffer()],
+        program.programId
+      );
 
       await program.methods
         .initializeClientIx()
@@ -27,17 +32,18 @@ export function useInitializeClient() {
           clientAccount: clientPda,
           systemProgram: SystemProgram.programId,
         })
-        .rpc({ commitment: "confirmed" });
+        .rpc();
 
+      setLastClientPda(clientPda);
       return clientPda;
-    } catch (e) {
-      console.error("initializeClient error:", e);
-      setError(e);
+    } catch (e: any) {
+      console.error("initializeClientIx error:", e);
+      setError(e.message ?? "Failed to initialize client");
       throw e;
     } finally {
       setLoading(false);
     }
   }, [program, publicKey]);
 
-  return { initializeClient, loading, error };
+  return { initializeClient, loading, error, lastClientPda };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { PublicKey } from "@solana/web3.js";
-import BN from "bn.js";
+import { BN } from "@coral-xyz/anchor";
 import { SOLANCE_PROGRAM_ID } from "./program";
 
 // ⚠️ Doivent matcher tes constantes Rust

@@ -1,6 +1,6 @@
 "use client";
 
-import { ContractForm } from "@/components/client/ContractForm";
+import { ContractForm } from "@src/components/contract/ContractForm.tsx";
 
 export default function NewContractPage() {
   return (
