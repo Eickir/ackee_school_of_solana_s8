@@ -1,56 +1,61 @@
+"use client";
+
 import { PublicKey } from "@solana/web3.js";
+import BN from "bn.js";
+import { SOLANCE_PROGRAM_ID } from "./program";
 
-const CLIENT_SEED = "client";
-const CONTRACTOR_SEED = "contractor";
-const CONTRACT_SEED = "contract";
-const PROPOSAL_SEED = "proposal";
-const VAULT_SEED = "vault";
+// ⚠️ Doivent matcher tes constantes Rust
+export const CLIENT_SEED = "client";
+export const CONTRACTOR_SEED = "contractor";
+export const CONTRACT_SEED = "contract";
+export const PROPOSAL_SEED = "proposal";
+export const VAULT_SEED = "vault";
 
-export function getClientPda(programId: PublicKey, owner: PublicKey) {
+export function getClientPda(user: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from(CLIENT_SEED), owner.toBuffer()],
-    programId
+    [Buffer.from(CLIENT_SEED), user.toBuffer()],
+    SOLANCE_PROGRAM_ID
   )[0];
 }
 
-export function getContractorPda(programId: PublicKey, owner: PublicKey) {
+export function getContractorPda(user: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from(CONTRACTOR_SEED), owner.toBuffer()],
-    programId
+    [Buffer.from(CONTRACTOR_SEED), user.toBuffer()],
+    SOLANCE_PROGRAM_ID
   )[0];
 }
 
 export function getContractPda(
-  programId: PublicKey,
-  clientPda: PublicKey,
-  contractId: bigint | number
-) {
-  const bn = BigInt(contractId);
-  const buf = Buffer.alloc(8);
-  buf.writeBigUInt64LE(bn);
+  clientAccount: PublicKey,
+  contractId: BN
+): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from(CONTRACT_SEED), clientPda.toBuffer(), buf],
-    programId
+    [
+      Buffer.from(CONTRACT_SEED),
+      clientAccount.toBuffer(),
+      contractId.toArrayLike(Buffer, "le", 8),
+    ],
+    SOLANCE_PROGRAM_ID
   )[0];
 }
 
 export function getProposalPda(
-  programId: PublicKey,
-  contractorPda: PublicKey,
-  proposalId: bigint | number
-) {
-  const bn = BigInt(proposalId);
-  const buf = Buffer.alloc(8);
-  buf.writeBigUInt64LE(bn);
+  contractorAccount: PublicKey,
+  proposalId: BN
+): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from(PROPOSAL_SEED), contractorPda.toBuffer(), buf],
-    programId
+    [
+      Buffer.from(PROPOSAL_SEED),
+      contractorAccount.toBuffer(),
+      proposalId.toArrayLike(Buffer, "le", 8),
+    ],
+    SOLANCE_PROGRAM_ID
   )[0];
 }
 
-export function getVaultPda(programId: PublicKey, contractPubkey: PublicKey) {
+export function getVaultPda(contract: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from(VAULT_SEED), contractPubkey.toBuffer()],
-    programId
+    [Buffer.from(VAULT_SEED), contract.toBuffer()],
+    SOLANCE_PROGRAM_ID
   )[0];
 }
