@@ -1,87 +1,93 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useRole } from "@/components/layout/RoleProvider";
 
-export default function Home() {
-  const { publicKey } = useWallet();
+export default function HomePage() {
+  const { connected } = useWallet();
+  const { role, setRole } = useRole();
+  const router = useRouter();
+
+  const handleChooseClient = () => {
+    setRole("client");
+    router.push("/client");
+  };
+
+  const handleChooseContractor = () => {
+    setRole("contractor");
+    router.push("/contractor");
+  };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-50 flex flex-col">
-      {/* Hero */}
-      <section className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-        <div className="max-w-3xl w-full space-y-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
-            Solance – On-chain freelance contracts on Solana
-          </h1>
-          <p className="text-zinc-400 text-lg">
-            Create missions as a client, receive proposals from contractors, lock
-            SOL in a vault and release payment on-chain when the work is done.
-          </p>
-
-          {!publicKey ? (
-            <p className="mt-4 text-sm text-zinc-400">
-              Connect your wallet with the button in the header to get started.
-            </p>
-          ) : (
-            <p className="mt-4 text-sm text-emerald-400">
-              Wallet connected: you can now choose how you want to use Solance.
-            </p>
-          )}
-
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
-            <RoleCard
-              title="Use Solance as a Client"
-              description="Create contracts, receive proposals from contractors, choose one and lock funds in a vault."
-              href="/client"
-              disabled={!publicKey}
-            />
-            <RoleCard
-              title="Use Solance as a Contractor"
-              description="Register as a contractor, submit proposals on open contracts and claim payment when work is done."
-              href="/contractor"
-              disabled={!publicKey}
-            />
-          </div>
-        </div>
+    <div className="h-full min-h-[70vh] flex flex-col justify-center gap-8">
+      {/* Hero section */}
+      <section className="space-y-3">
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+          Manage freelance missions <span className="text-indigo-400">on Solana</span>.
+        </h1>
+        <p className="text-sm sm:text-base text-slate-400 max-w-xl">
+          Solance lets clients create on-chain missions and contractors submit proposals.
+          Funds are locked in a vault and released on-chain once the work is done.
+        </p>
       </section>
 
-      {/* Simple footer */}
-      <footer className="border-t border-zinc-800 py-4 text-center text-xs text-zinc-500">
-        Built on Solana · Solance
-      </footer>
-    </main>
-  );
-}
+      {/* Etat: wallet non connecté */}
+      {!connected && (
+        <section className="space-y-2">
+          <p className="text-sm text-amber-400">
+            To get started, connect your wallet using the button in the top-right corner.
+          </p>
+          <p className="text-xs text-slate-500">
+            Once connected, you can choose whether you want to act as a client or as a contractor.
+          </p>
+        </section>
+      )}
 
-function RoleCard({
-  title,
-  description,
-  href,
-  disabled,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  disabled?: boolean;
-}) {
-  const content = (
-    <div className="h-full rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-left hover:border-zinc-500 transition-colors">
-      <h2 className="text-lg font-semibold mb-2">{title}</h2>
-      <p className="text-sm text-zinc-400 mb-4">{description}</p>
-      <span className="inline-flex items-center text-sm font-medium text-emerald-400">
-        {disabled ? "Connect wallet first" : "Continue →"}
-      </span>
+      {/* Etat: wallet connecté */}
+      {connected && (
+        <section className="grid gap-4 md:grid-cols-2">
+          {/* Carte Client */}
+          <button
+            type="button"
+            onClick={handleChooseClient}
+            className="text-left rounded-lg border border-slate-800 bg-slate-950/70 px-4 py-4 hover:border-indigo-500 hover:bg-slate-900 transition-colors"
+          >
+            <h2 className="text-sm font-semibold mb-1">I&apos;m a Client</h2>
+            <p className="text-xs text-slate-400 mb-3">
+              Create missions, receive proposals, choose your contractor and lock funds in
+              a secure on-chain vault.
+            </p>
+            <span className="inline-flex text-xs px-3 py-1 rounded-full bg-indigo-500 text-white">
+              Go to client dashboard →
+            </span>
+          </button>
+
+          {/* Carte Contractor */}
+          <button
+            type="button"
+            onClick={handleChooseContractor}
+            className="text-left rounded-lg border border-slate-800 bg-slate-950/70 px-4 py-4 hover:border-emerald-500 hover:bg-slate-900 transition-colors"
+          >
+            <h2 className="text-sm font-semibold mb-1">I&apos;m a Contractor</h2>
+            <p className="text-xs text-slate-400 mb-3">
+              Browse open missions, send proposals with your price, and get paid on-chain
+              once the work is validated.
+            </p>
+            <span className="inline-flex text-xs px-3 py-1 rounded-full bg-emerald-500 text-white">
+              Go to contractor dashboard →
+            </span>
+          </button>
+        </section>
+      )}
+
+      {/* Petit rappel du rôle actif */}
+      {connected && role && (
+        <p className="text-[11px] text-slate-500">
+          Current mode: <span className="font-semibold capitalize text-slate-200">{role}</span>.
+          You can switch by coming back to the home page.
+        </p>
+      )}
     </div>
-  );
-
-  if (disabled) {
-    return <div className="opacity-50 cursor-not-allowed">{content}</div>;
-  }
-
-  return (
-    <Link href={href} className="block">
-      {content}
-    </Link>
   );
 }

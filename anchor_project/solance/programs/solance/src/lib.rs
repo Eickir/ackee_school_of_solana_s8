@@ -9,7 +9,7 @@ pub use errors::SolanceError;
 pub mod events;
 pub use events::*;
 
-declare_id!("4JasCNGt4XMT7hGh86296TQXrvyJYXEhF6R4apdVLyXg");
+declare_id!("9os8f9dUNrZzg53kjGb1wj1stMabFFj4fuRnrF9pCjR6");
 
 #[program]
 pub mod solance {

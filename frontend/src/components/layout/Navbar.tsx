@@ -2,62 +2,99 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-// Si tu as déjà un WalletMultiButton, décommente ça :
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-
-const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/contracts/new", label: "Create Contract" },
-  { href: "/contracts", label: "View Contracts" },
-];
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useRole } from "./RoleProvider";
 
 export function NavBar() {
   const pathname = usePathname();
+  const { connected } = useWallet();
+  const { role } = useRole();
+
+  const isActive = (href: string) => pathname === href;
 
   return (
-    <header className="border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        {/* Logo / title */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="rounded-full bg-zinc-900 px-2 py-1 text-xs font-semibold text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900">
-            Solance
-          </span>
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-            Freelance escrow on Solana
-          </span>
-        </Link>
+    <header className="border-b border-slate-900/60 bg-slate-950/80 backdrop-blur">
+      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        {/* Logo + Home */}
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-base font-semibold">Solance</span>
+            <span className="text-[10px] text-slate-500 border border-slate-700 px-1.5 py-0.5 rounded-full">
+              beta
+            </span>
+          </Link>
 
-        {/* Nav links */}
-        <nav className="flex items-center gap-4 text-sm">
-          {navItems.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-
-            return (
+          {/* Liens contextuels selon le rôle */}
+          {connected && (
+            <nav className="hidden md:flex items-center gap-4 text-xs text-slate-400">
               <Link
-                key={item.href}
-                href={item.href}
-                className={[
-                  "rounded-full px-3 py-1 transition-colors",
-                  isActive
-                    ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900"
-                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                ].join(" ")}
+                href="/"
+                className={isActive("/") ? "text-slate-100" : "hover:text-slate-200"}
               >
-                {item.label}
+                Home
               </Link>
-            );
-          })}
-        </nav>
 
-        {/* Wallet button (optionnel si tu l’utilises déjà ailleurs) */}
-        {
-        <div className="ml-4">
+              {role === "client" && (
+                <>
+                  <Link
+                    href="/client"
+                    className={
+                      isActive("/client") ? "text-slate-100" : "hover:text-slate-200"
+                    }
+                  >
+                    Client dashboard
+                  </Link>
+                  <Link
+                    href="/contracts"
+                    className={
+                      pathname.startsWith("/contracts")
+                        ? "text-slate-100"
+                        : "hover:text-slate-200"
+                    }
+                  >
+                    Contracts
+                  </Link>
+                </>
+              )}
+
+              {role === "contractor" && (
+                <>
+                  <Link
+                    href="/contractor"
+                    className={
+                      isActive("/contractor")
+                        ? "text-slate-100"
+                        : "hover:text-slate-200"
+                    }
+                  >
+                    Contractor dashboard
+                  </Link>
+                  <Link
+                    href="/contracts"
+                    className={
+                      pathname.startsWith("/contracts")
+                        ? "text-slate-100"
+                        : "hover:text-slate-200"
+                    }
+                  >
+                    Missions
+                  </Link>
+                </>
+              )}
+            </nav>
+          )}
+        </div>
+
+        {/* Wallet button */}
+        <div className="flex items-center gap-3">
+          {connected && role && (
+            <span className="hidden sm:inline text-[11px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-300">
+              Mode: <span className="font-semibold capitalize">{role}</span>
+            </span>
+          )}
           <WalletMultiButton />
         </div>
-        }
       </div>
     </header>
   );
