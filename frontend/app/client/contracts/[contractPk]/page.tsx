@@ -7,6 +7,10 @@ import { PublicKey } from "@solana/web3.js";
 import { useSolanceProgram } from "@/lib/solana/program";
 import { useChooseProposal } from "@/hooks/useChooseProposal";
 
+const CONTRACTOR_SEED = "contractor";
+
+// -------- Helpers --------
+
 function tryParsePubkey(s: string | undefined): PublicKey | null {
   if (!s) return null;
   try {
@@ -27,11 +31,48 @@ function lamportsToSol(v: any): string {
 
 function formatStatus(status: any): string {
   if (!status) return "Unknown";
+
+  // Enum Anchor typique : { opened: {} } / { accepted: {} } / { closed: {} }
   if (status.opened !== undefined) return "Opened";
   if (status.accepted !== undefined) return "Accepted";
   if (status.closed !== undefined) return "Closed";
+
   return "Unknown";
 }
+
+// Option<Pubkey> ou Pubkey direct
+function extractPubkeyFromMaybeOption(maybe: any): string | null {
+  if (!maybe) return null;
+
+  // Cas Option style Anchor: { some: Pubkey } / { none: {} }
+  if (maybe.some) {
+    if (typeof maybe.some.toBase58 === "function") {
+      return maybe.some.toBase58();
+    }
+    return String(maybe.some);
+  }
+
+  // Cas Pubkey direct
+  if (typeof maybe.toBase58 === "function") {
+    return maybe.toBase58();
+  }
+
+  return String(maybe);
+}
+
+// Option<u64> ou u64 direct
+function extractAmountFromMaybeOption(maybe: any): number | null {
+  if (maybe === null || maybe === undefined) return null;
+
+  // Option style Anchor: { some: value } / { none: {} }
+  if (maybe.some !== undefined) {
+    return Number(maybe.some);
+  }
+
+  return Number(maybe);
+}
+
+// -------- Page --------
 
 export default function ClientContractDetailPage() {
   const params = useParams();
@@ -49,6 +90,7 @@ export default function ClientContractDetailPage() {
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Pour forcer un rechargement après un chooseProposal
   const [reloadCounter, setReloadCounter] = useState(0);
 
   const {
@@ -58,7 +100,7 @@ export default function ClientContractDetailPage() {
     lastVaultPda,
   } = useChooseProposal();
 
-  // Chargement contrat + proposals
+  // Chargement du contrat + des proposals associées
   useEffect(() => {
     if (!program || !contractPk) return;
 
@@ -70,11 +112,11 @@ export default function ClientContractDetailPage() {
         const c = await (program.account as any).contract.fetch(contractPk);
         setContract(c);
 
-        // 2) fetch des proposals liées à ce contrat
+        // 2) fetch des proposals liées à ce contrat (memcmp sur le champ contract)
         const allProposals = await (program.account as any).proposal.all([
           {
             memcmp: {
-              offset: 8, // 8 bytes de discrim, ensuite le champ `contract: Pubkey`
+              offset: 8, // 8 bytes de discrim, puis vient `contract: Pubkey`
               bytes: contractPk.toBase58(),
             },
           },
@@ -89,6 +131,7 @@ export default function ClientContractDetailPage() {
     })();
   }, [program, contractPk, reloadCounter]);
 
+  // Si l'adresse de contrat dans l'URL est invalide
   if (!contractPk) {
     return (
       <div className="space-y-3">
@@ -118,22 +161,32 @@ export default function ClientContractDetailPage() {
   }
 
   const statusLabel = formatStatus(contract?.status);
+
+  // Contractor sélectionné (Option<Pubkey> → string)
+  const selectedContractorPk = extractPubkeyFromMaybeOption(
+    contract?.contractor
+  );
+
+  const acceptedAmount = extractAmountFromMaybeOption(contract?.amount);
+
+  // On ne peut choisir une proposal que si le contrat est encore "Opened"
   const canChoose =
     statusLabel === "Opened" && !loading && !choosing && proposals.length > 0;
 
   const handleChoose = async (p: any) => {
     if (!program || !contractPk) return;
     try {
-      // `p.account.contractor` est DÉJÀ le PDA du ContractorAccount,
-      // c'est ce qu'on a stocké on-chain dans initialize_proposal.
-      const contractorAccountPk = new PublicKey(
-        p.account.contractor.toBase58
-          ? p.account.contractor.toBase58()
-          : String(p.account.contractor)
+      const contractorPubkey = p.account.contractor as PublicKey;
+
+      // Recalcul du ContractorAccount PDA à partir du contractor Pubkey
+      const [contractorAccountPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from(CONTRACTOR_SEED), contractorPubkey.toBuffer()],
+        program.programId
       );
 
-      await chooseProposal(contractPk, p.publicKey, contractorAccountPk);
+      await chooseProposal(contractPk, p.publicKey, contractorAccountPda);
 
+      // Force un reload des données pour voir le statut/amount mis à jour
       setReloadCounter((n) => n + 1);
     } catch (e) {
       console.error("handleChoose error:", e);
@@ -172,6 +225,7 @@ export default function ClientContractDetailPage() {
         </p>
       )}
 
+      {/* Bloc contrat */}
       {contract && (
         <section className="rounded-lg border border-slate-800 bg-slate-950/70 p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
@@ -204,17 +258,14 @@ export default function ClientContractDetailPage() {
             <div className="space-y-1">
               <p className="text-slate-500">Selected contractor</p>
               <p className="font-mono break-all">
-                {contract.contractor
-                  ? contract.contractor.toBase58?.() ??
-                    String(contract.contractor)
-                  : "None yet"}
+                {selectedContractorPk ?? "None yet"}
               </p>
             </div>
             <div className="space-y-1">
               <p className="text-slate-500">Accepted amount</p>
               <p>
-                {contract.amount
-                  ? `${lamportsToSol(contract.amount)} SOL`
+                {acceptedAmount !== null
+                  ? `${lamportsToSol(acceptedAmount)} SOL`
                   : "Not set"}
               </p>
             </div>
@@ -222,6 +273,7 @@ export default function ClientContractDetailPage() {
         </section>
       )}
 
+      {/* Bloc proposals */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Proposals</h2>
 
@@ -237,13 +289,15 @@ export default function ClientContractDetailPage() {
               const proposalId = Number(
                 p.account.proposalId ?? p.account.proposal_id ?? 0
               );
+
               const contractorPk =
                 p.account.contractor?.toBase58?.() ??
                 String(p.account.contractor);
 
+              // True seulement pour la proposition dont le contractor
+              // correspond au contractor sélectionné sur le contrat
               const isSelected =
-                contract?.contractor &&
-                contract.contractor.toBase58?.() === contractorPk;
+                !!selectedContractorPk && contractorPk === selectedContractorPk;
 
               return (
                 <div
@@ -251,9 +305,7 @@ export default function ClientContractDetailPage() {
                   className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-xs space-y-2"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold">
-                      Proposal #{proposalId}
-                    </p>
+                    <p className="font-semibold">Proposal #{proposalId}</p>
                     <p className="text-emerald-400">
                       {lamportsToSol(p.account.amount)} SOL
                     </p>
