@@ -176,15 +176,8 @@ export default function ClientContractDetailPage() {
   const handleChoose = async (p: any) => {
     if (!program || !contractPk) return;
     try {
-      const contractorPubkey = p.account.contractor as PublicKey;
-
-      // Recalcul du ContractorAccount PDA à partir du contractor Pubkey
-      const [contractorAccountPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(CONTRACTOR_SEED), contractorPubkey.toBuffer()],
-        program.programId
-      );
-
-      await chooseProposal(contractPk, p.publicKey, contractorAccountPda);
+      const contractorAccountPk = p.account.contractor as PublicKey;
+      await chooseProposal(contractPk, p.publicKey, contractorAccountPk);
 
       // Force un reload des données pour voir le statut/amount mis à jour
       setReloadCounter((n) => n + 1);
