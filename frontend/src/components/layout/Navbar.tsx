@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useRole } from "./RoleProvider";
+
+const LAMPORTS_PER_SOL = 1_000_000_000;
 
 export function NavBar() {
   const pathname = usePathname();
@@ -18,7 +20,7 @@ export function NavBar() {
 
   const isActive = (href: string) => pathname === href;
 
-  // Load SOL balance of the connected wallet
+  // 🔁 Auto-refresh de la balance quand le compte change on-chain
   useEffect(() => {
     if (!connected || !publicKey || !connection) {
       setBalanceSol(null);
@@ -26,13 +28,15 @@ export function NavBar() {
     }
 
     let cancelled = false;
+    let subId: number | null = null;
 
-    (async () => {
+    // 1) Fetch initial
+    const fetchBalance = async () => {
       try {
         setLoadingBalance(true);
         const lamports = await connection.getBalance(publicKey);
         if (!cancelled) {
-          setBalanceSol(lamports / 1_000_000_000); // lamports -> SOL
+          setBalanceSol(lamports / LAMPORTS_PER_SOL);
         }
       } catch (e) {
         console.error("Failed to fetch balance:", e);
@@ -44,10 +48,29 @@ export function NavBar() {
           setLoadingBalance(false);
         }
       }
+    };
+
+    fetchBalance();
+
+    // 2) Subscribe aux changements de compte
+    (async () => {
+      try {
+        subId = await connection.onAccountChange(publicKey, (info) => {
+          if (cancelled) return;
+          const lamports = info.lamports;
+          setBalanceSol(lamports / LAMPORTS_PER_SOL);
+        });
+      } catch (e) {
+        console.error("onAccountChange subscription error:", e);
+      }
     })();
 
+    // 3) Cleanup
     return () => {
       cancelled = true;
+      if (subId !== null) {
+        connection.removeAccountChangeListener(subId).catch(() => {});
+      }
     };
   }, [connected, publicKey, connection]);
 
@@ -124,7 +147,7 @@ export function NavBar() {
           )}
         </div>
 
-        {/* Wallet + balance + mode */}
+        {/* Wallet + rôles + balance */}
         <div className="flex items-center gap-3">
           {connected && role && (
             <span className="hidden sm:inline text-[11px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-300">
@@ -135,7 +158,7 @@ export function NavBar() {
           {connected && (
             <span className="hidden sm:inline text-[11px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-300 font-mono">
               {loadingBalance
-                ? "Loading…"
+                ? "◎ Loading…"
                 : balanceSol !== null
                 ? `◎ ${balanceSol.toFixed(3)} SOL`
                 : "◎ -- SOL"}
