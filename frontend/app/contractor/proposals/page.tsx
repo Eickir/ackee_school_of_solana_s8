@@ -77,16 +77,17 @@ export default function ContractorProposalsPage() {
         // Précharger les contrats associés pour afficher les titres
         const uniqueContractPks: string[] = Array.from(
           new Set<string>(
-            mine.map((p: any): string =>
-              p.account.contract.toBase58()
+            mine.map(
+              (p: any): string =>
+                (p.account.contract as PublicKey).toBase58()
             )
           )
         );
 
         const contractsMap: Record<string, any> = {};
         await Promise.all(
-          uniqueContractPks.map(async (pkStr) => {
-            const pk = new PublicKey(pkStr);
+          uniqueContractPks.map(async (pkStr: string) => {
+            const pk = new PublicKey(pkStr); // pkStr est bien un string
             try {
               const c = await (program.account as any).contract.fetch(pk);
               contractsMap[pkStr] = c;
