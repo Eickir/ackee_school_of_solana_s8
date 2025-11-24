@@ -1,7 +1,7 @@
 import "./globals.css";
 import { ReactNode } from "react";
 import { WalletContextProvider } from "@/components/wallet/WalletProvider";
-import { Navbar } from "@/components/layout/Navbar";
+import { NavBar } from "@/components/layout/Navbar";
 
 export const metadata = {
   title: "Solance",
@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <WalletContextProvider>
           <div className="min-h-screen bg-slate-950 text-slate-50">
-            <Navbar />
+            <NavBar />
             <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
           </div>
         </WalletContextProvider>
