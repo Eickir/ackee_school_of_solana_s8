@@ -75,7 +75,7 @@ export default function ContractorProposalsPage() {
         setProposals(mine);
 
         // Précharger les contrats associés pour afficher les titres
-        const uniqueContractPks = Array.from(
+        const uniqueContractPks: string[] = Array.from(
           new Set(
             mine.map((p: any) =>
               p.account.contract.toBase58()
