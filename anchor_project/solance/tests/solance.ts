@@ -58,6 +58,61 @@ function expectAnchorError(err: any, expectedCode: string) {
   ).to.be.true;
 }
 
+// Vérifie si un compte existe déjà on-chain
+async function accountExists(
+  connection: anchor.web3.Connection,
+  pubkey: anchor.web3.PublicKey
+): Promise<boolean> {
+  const info = await connection.getAccountInfo(pubkey);
+  return info !== null;
+}
+
+// S'assure que le ContractorAccount est bien initialisé pour une paire (wallet, pda)
+async function ensureContractorInitialized(
+  program: Program<Solance>,
+  connection: anchor.web3.Connection,
+  contractorKp: anchor.web3.Keypair,
+  contractorPda: anchor.web3.PublicKey
+) {
+  if (await accountExists(connection, contractorPda)) {
+    // déjà créé → on ne refait pas l'IX, donc pas de "already in use"
+    return;
+  }
+
+  await program.methods
+    .initializeContractorIx()
+    .accounts({
+      contractor: contractorKp.publicKey,
+      contractorAccount: contractorPda,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([contractorKp])
+    .rpc({ commitment: "confirmed" });
+}
+
+// Pareil pour les client accounts, si tu en as besoin
+async function ensureClientInitialized(
+  program: Program<Solance>,
+  connection: anchor.web3.Connection,
+  clientKp: anchor.web3.Keypair,
+  clientPda: anchor.web3.PublicKey
+) {
+  if (await accountExists(connection, clientPda)) {
+    return;
+  }
+
+  await program.methods
+    .initializeClientIx()
+    .accounts({
+      client: clientKp.publicKey,
+      clientAccount: clientPda,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([clientKp])
+    .rpc({ commitment: "confirmed" });
+}
+
+
 // ---------- TESTS PRINCIPAUX ----------
 
 describe("solance program", () => {
@@ -693,6 +748,52 @@ describe("solance program", () => {
         }
       }
     });
+
+    // NEW TEST: contract passed does not match proposal.contract
+    it("Should fail to update Proposal if contract account doesn't match proposal.contract (InvalidProposalForContract)", async () => {
+      // Nouveau contract pour ce test
+      const clientAccount = await program.account.client.fetch(client_pda);
+      const nextId = clientAccount.nextContractId as anchor.BN;
+
+      const [wrong_contract_pda] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from(CONTRACT_SEED),
+            client_pda.toBuffer(),
+            nextId.toArrayLike(Buffer, "le", 8),
+          ],
+          program.programId
+        );
+
+      await program.methods
+        .initializeContractIx(good_title_length, good_topic_length)
+        .accounts({
+          signer: client.publicKey,
+          clientAccount: client_pda,
+          contractAccount: wrong_contract_pda,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([client])
+        .rpc({ commitment: "confirmed" });
+
+      // On essaie d'update first_proposal_pda (lié à first_contract_pda) avec wrong_contract_pda
+      try {
+        await program.methods
+          .updateProposalIx(new anchor.BN(999_000_000))
+          .accounts({
+            contractor: contractor.publicKey,
+            contractorAccount: contractor_pda,
+            proposalAccount: first_proposal_pda, // proposal.contract = first_contract_pda
+            contract: wrong_contract_pda,         // ❌ mismatch
+          })
+          .signers([contractor])
+          .rpc({ commitment: "confirmed" });
+
+        assert.fail("Expected InvalidProposalForContract error on updateProposalIx");
+      } catch (err: any) {
+        expectAnchorError(err, "InvalidProposalForContract");
+      }
+    });
   });
 
   describe("choose proposal (with vault)", () => {
@@ -1011,9 +1112,10 @@ describe("solance program", () => {
         expectAnchorError(err, "InvalidContractorForProposal");
       }
     });
+
   });
 
-    describe("mark work done", () => {
+  describe("mark work done", () => {
     it("Should let the contractor mark work as done and close the contract", async () => {
       await program.methods
         .markWorkDoneIx()
@@ -1131,8 +1233,40 @@ describe("solance program", () => {
         }
       }
     });
-  });
 
+    // NEW TEST: second markWorkDone on same contract
+    it("Should fail if markWorkDoneIx is called twice on the same contract", async () => {
+      // first_contract_pda a déjà été passé à Closed dans le happy path au-dessus
+      try {
+        await program.methods
+          .markWorkDoneIx()
+          .accounts({
+            contractor: contractor.publicKey,
+            contractorAccount: contractor_pda,
+            contract: first_contract_pda,
+          })
+          .signers([contractor])
+          .rpc({ commitment: "confirmed" });
+
+        assert.fail("Expected second markWorkDoneIx to fail");
+      } catch (err: any) {
+        if (err instanceof AnchorError) {
+          const code = err.error.errorCode.code;
+          expect(
+            ["ContractNotAccepted", "ContractAlreadyClosed"],
+            `Expected ContractNotAccepted or ContractAlreadyClosed, got ${code}`
+          ).to.include(code);
+        } else {
+          const msg = String(err);
+          expect(
+            msg.includes("ContractNotAccepted") ||
+              msg.includes("ContractAlreadyClosed"),
+            "Expected ContractNotAccepted or ContractAlreadyClosed in error"
+          ).to.be.true;
+        }
+      }
+    });
+  });
 
   describe("claim payment (with vault)", () => {
     it("Should transfer SOL from vault to contractor when contract is closed", async () => {
@@ -1304,6 +1438,31 @@ describe("solance program", () => {
         assert.fail("Expected ContractNotClosed error");
       } catch (err: any) {
         expectAnchorError(err, "ContractNotClosed");
+      }
+    });
+
+    // NEW TEST: signer not owner of clientAccount for claimPaymentIx
+    it("Should fail claimPaymentIx if signer is not owner of the clientAccount", async () => {
+      await airdrop(provider.connection, client_attacker.publicKey, 2_000_000_000);
+
+      try {
+        await program.methods
+          .claimPaymentIx()
+          .accounts({
+            client: client_attacker.publicKey, // ❌ pas owner de client_pda
+            contractor: contractor.publicKey,
+            clientAccount: client_pda,
+            contractorAccount: contractor_pda,
+            contract: first_contract_pda,
+            vault: first_vault_pda,
+            systemProgram: anchor.web3.SystemProgram.programId,
+          })
+          .signers([client_attacker])
+          .rpc({ commitment: "confirmed" });
+
+        assert.fail("Expected UnauthorizedAccount error on claimPaymentIx");
+      } catch (err: any) {
+        expectAnchorError(err, "UnauthorizedAccount");
       }
     });
   });

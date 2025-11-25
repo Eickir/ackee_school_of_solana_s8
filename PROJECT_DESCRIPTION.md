@@ -323,76 +323,217 @@ pub struct Proposal {
 
 ## Testing
 
-### Test Coverage (Anchor Tests)
+### Overview
 
-The Anchor test suite (`tests/solance.ts`) covers both **happy path** and **failure** scenarios.
+The Anchor test suite (`tests/solance.ts`) provides full coverage of both **happy path** and **failure** scenarios.  
+It extensively validates:
 
-#### Happy Path Tests
+- PDA derivation  
+- Account ownership rules  
+- Error codes from your custom `SolanceError` enum  
+- Cross-account consistency (proposal ↔ contract, contractor ↔ proposal, client ↔ contract)  
+- The complete lifecycle of a freelance mission (contract → proposal → vault → work done → payment)
 
-- **Client Initialization**
-  - Successfully initializes a `Client` account.
-  - Verifies `owner` and `next_contract_id = 0`.
+The tests use TypeScript (`mocha` + `chai`) and the Anchor testing provider.
 
-- **Contractor Initialization**
-  - Successfully initializes a `Contractor` account.
-  - Verifies `owner` and `next_proposal_id = 0`.
+---
 
-- **Contract Creation**
-  - Initializes a contract with valid title and topic.
-  - Confirms the contract is linked to the correct client and has the right id.
+## Happy Path Scenarios
 
-- **Proposal Creation**
-  - Contractor initializes a proposal with a valid amount for a given contract.
+These tests validate that the full workflow functions exactly as intended.
 
-- **Proposal Update**
-  - Contractor updates a proposal amount when it hasn’t been accepted.
+### 1. Client Initialization
 
-- **Choosing a Proposal (with Vault)**
-  - Client chooses a proposal.
-  - Asserts that:
-    - Contract status moves to `Accepted`.
-    - Contract stores the correct `contractor`, `amount`, and `accepted_proposal_id`.
-    - The vault PDA is correctly derived and funded.
+- Creates a `Client` PDA derived from the user’s wallet.
+- Checks that:
+  - `owner == wallet.publicKey`
+  - `next_contract_id == 0`.
 
-- **Mark Work Done**
-  - Selected contractor calls `mark_work_done_ix`.
-  - Contract status becomes `Closed`.
+### 2. Contractor Initialization
 
-- **Claim Payment (with Vault)**
-  - Client calls `claim_payment_ix`.
-  - SOL is transferred from vault PDA to contractor’s wallet.
-  - Client’s balance decreases by (approximately) the same amount.
-  - Contract status becomes `Paid`.
+- Creates a `Contractor` PDA for the contractor wallet.
+- Verifies:
+  - `owner == wallet.publicKey`
+  - `next_proposal_id == 0`.
 
-#### Unhappy Path Tests
+### 3. Contract Creation
 
-- **Re-initialization of Client / Contractor**
-  - Fails when trying to initialize an already initialized `Client` or `Contractor` account.
-  - Checks for custom errors `ClientAlreadyInitialized` / `ContractorAlreadyInitialized` (implementation detail).
+Using `initialize_contract_ix(title, topic)`:
 
-- **Insufficient Funds**
-  - Fails to initialize a client/contractor when the payer doesn’t have enough SOL for rent exemption.
-  - Fails `choose_proposal_ix` when the client wallet does not have enough SOL (`InsufficientClientFunds`).
+- Valid lengths for title and topic.
+- Contract stored at the expected PDA.
+- `contract_id` increments properly.
+- Status is initially `Opened`.
 
-- **Validation of Title / Topic Length**
-  - Contract initialization fails if `title` or `topic` exceed maximum byte length (`TitleTooLong`, `TopicTooLong`).
+### 4. Proposal Creation
 
-- **Unauthorized Access**
-  - Attempt to initialize a contract with a signer that is not the owner of the `Client` account (`UnauthorizedAccount`).
-  - Attempt to initialize a proposal with a signer that is not the owner of the `Contractor` account (`UnauthorizedAccount`).
+Using `initialize_proposal_ix(amount)`:
 
-- **Proposal ↔ Contract Mismatch**
-  - `choose_proposal_ix` fails when the proposal does not belong to the given contract (`InvalidProposalForContract`).
-  - Fails when the `contractor_account` does not match the proposal’s contractor (`InvalidContractorForProposal`).
+- Valid contractor creates a new proposal.
+- Proposal stores:
+  - correct `contract` reference,
+  - correct `contractor` PDA,
+  - `proposal_id == next_proposal_id`,
+  - correct `amount`.
 
-- **Lifecycle Violations**
-  - Fails `mark_work_done_ix` if contract is not in `Accepted` status (`ContractNotAccepted`).
-  - Fails `claim_payment_ix` if the contract is not in `Closed` status (`ContractNotClosed`) or has no amount set (`MissingAmount`).
+### 5. Proposal Update
 
-### Running Tests
+Using `update_proposal_ix(new_amount)`:
+
+- Contractor can update their proposal as long as the contract is still `Opened`.
+- Confirms the `amount` is updated and other fields remain unchanged.
+
+### 6. Choose Proposal (Vault Escrow Mechanism)
+
+Using `choose_proposal_ix`:
+
+- Confirms:
+  - Client has enough SOL,
+  - Proposal belongs to the contract,
+  - Contractor account matches the proposal,
+  - Contract has status `Opened`.
+
+- Effects checked:
+  - Vault PDA receives ≥ `proposal.amount`,
+  - Client wallet decreases by at least the amount + rent,
+  - Contract updated with:
+    - `status = Accepted`,
+    - `contractor = contractor_pda`,
+    - `amount = proposal.amount`,
+    - `accepted_proposal_id`.
+
+### 7. Mark Work Done
+
+Using `mark_work_done_ix`:
+
+- Only the *selected* contractor can call it.
+- Contract status transitions from `Accepted` → `Closed`.
+
+### 8. Claim Payment (Releasing Vault Funds)
+
+Using `claim_payment_ix`:
+
+- Can only be called by the client.
+- Contract must be in `Closed` status.
+- Vault transfers exactly `amount` lamports to the contractor.
+- Contract status becomes `Paid`.
+
+---
+
+## Failure Scenarios (Unhappy Path)
+
+The test suite also verifies all important invalid or malicious scenarios.
+
+### 1. Re-initialization & Rent Errors
+
+- Attempting to re-initialize an already created Client/Contractor PDA → `"account already in use"`.
+- Attempting to initialize with insufficient lamports → `"insufficient lamports"`.
+
+### 2. Title and Topic Length Validation
+
+- Title > `TITLE_MAX_LENGTH` ⇒ `TitleTooLong`.
+- Topic > `TOPIC_MAX_LENGTH` ⇒ `TopicTooLong`.
+
+### 3. Unauthorized Access (`UnauthorizedAccount`)
+
+These scenarios verify that your account constraints work correctly:
+
+- Non-owner tries to initialize a contract using someone else’s `client_account`.
+- Non-owner tries to create a proposal using someone else’s `contractor_account`.
+- Wrong contractor tries to:
+  - update a proposal,
+  - mark work as done.
+- A non-owner of `client_account` tries to call `claim_payment_ix`.
+
+### 4. Cross-Account Inconsistencies
+
+Tests verify custom error codes:
+
+- **InvalidProposalForContract**
+  - The proposal does not belong to the passed contract.
+
+- **InvalidContractorForProposal**
+  - The contractor account passed does not match the proposal’s contractor.
+
+### 5. Proposal Lifecycle Violations
+
+- Updating a proposal after it has been accepted ⇒ `ProposalCannotBeUpdated`.
+
+### 6. Mark Work Done Errors
+
+- Contract not in `Accepted` state ⇒ `ContractNotAccepted`.
+- Attempting to mark work done twice:
+  - May trigger `ContractNotAccepted` or a similar constraint error depending on state order.
+
+### 7. Claim Payment Errors
+
+- Second call to `claim_payment_ix` (double spend attempt) ⇒ `ContractNotClosed`.
+- Contract is still `Accepted` (not yet closed) ⇒ `ContractNotClosed`.
+- Wrong signer (not owner of `client_account`) ⇒ `UnauthorizedAccount`.
+
+### 8. Insufficient Funds When Choosing a Proposal
+
+- `choose_proposal_ix` fails with `InsufficientClientFunds` when:
+  - client wallet balance < proposal amount.
+
+---
+
+## Running Tests
+
+To run the full suite:
 
 ```bash
-anchor test
+anchor test --provider.cluster localnet
+
+solance program
+    initialize client
+      ✔ Should successfully initialize a Client account with next_contract_id = 0 (701ms)
+      ✔ Should fail when initializing a Client account already initialized
+      ✔ Should fail to initialize client when payer has not enough funds (474ms)
+
+    initialize contractor
+      ✔ Should successfully initialize a Contractor account with next_proposal_id = 0 (906ms)
+      ✔ Should fail when initializing a Contractor account already initialized
+      ✔ Should fail to initialize contractor when payer has not enough funds (479ms)
+
+    initialize contract
+      ✔ Should successfully initialize a Contract account with contract_id = 0 (468ms)
+      ✔ Should fail to initialize a Contract with a title longer than 100 bytes
+      ✔ Should fail to initialize a Contract with a topic longer than 500 bytes
+      ✔ Should fail to initialize a Contract when the signer is not the owner of the Client Account (920ms)
+
+    initialize proposal
+      ✔ Should successfully initialize a Proposal account with proposal_id = 0 (461ms)
+      ✔ Should store correct contract and contractor in Proposal account
+      ✔ Should fail to initialize a Proposal when the signer is not the owner of the Contractor Account (487ms)
+
+    update proposal
+      ✔ Should let contractor update amount on an open proposal (459ms)
+      ✔ Should fail to update a Proposal that has been accepted (ProposalCannotBeUpdated) (1873ms)
+      ✔ Should fail if another contractor tries to update the proposal (472ms)
+      ✔ Should fail to update Proposal if contract account doesn't match proposal.contract (InvalidProposalForContract) (946ms)
+
+    choose proposal (with vault)
+      ✔ Should let the client choose a proposal, fund the vault, and update the contract (921ms)
+      ✔ Should fail if client doesn't have enough funds (934ms)
+      ✔ Should fail if proposal does not belong to the given contract (InvalidProposalForContract) (472ms)
+      ✔ Should fail if contractorAccount does not match proposal contractor (InvalidContractorForProposal) (908ms)
+
+    mark work done
+      ✔ Should let the contractor mark work as done and close the contract (467ms)
+      ✔ Should fail if another contractor tries to mark work as done
+      ✔ Should fail if contract is not in Accepted status (453ms)
+      ✔ Should fail if markWorkDoneIx is called twice on the same contract
+
+    claim payment (with vault)
+      ✔ Should transfer SOL from vault to contractor when contract is closed (454ms)
+      ✔ Should fail on second claim (no double payment)
+      ✔ Should fail if contract is not closed yet (ContractNotClosed) (1887ms)
+      ✔ Should fail claimPaymentIx if signer is not owner of the clientAccount (479ms)
+
+  29 passing (16s)
+
+✨  Done in 17.18s.
 ```
 
 This command:
