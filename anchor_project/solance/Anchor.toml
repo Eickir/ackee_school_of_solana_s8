@@ -10,11 +10,14 @@ skip-lint = false
 [programs.localnet]
 solance = "9os8f9dUNrZzg53kjGb1wj1stMabFFj4fuRnrF9pCjR6"
 
+[programs.devnet]
+solance = "9os8f9dUNrZzg53kjGb1wj1stMabFFj4fuRnrF9pCjR6"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

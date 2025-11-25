@@ -6,9 +6,13 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import idl from "./solance_idl.json";
 
-export const SOLANCE_PROGRAM_ID = new PublicKey(
-  (idl as any).address ?? "4JasCNGt4XMT7hGh86296TQXrvyJYXEhF6R4apdVLyXg"
-);
+// 1. Récupérer le programId depuis l'ENV ou l'IDL
+const PROGRAM_ID_STR =
+  process.env.NEXT_PUBLIC_SOLANCE_PROGRAM_ID ||
+  (idl as any).address || // généré par Anchor
+  "9os8f9dUNrZzg53kjGb1wj1stMabFFj4fuRnrF9pCjR6"; // fallback éventuel
+
+export const SOLANCE_PROGRAM_ID = new PublicKey(PROGRAM_ID_STR);
 
 export function useSolanceProgram() {
   const { connection } = useConnection();
@@ -17,21 +21,15 @@ export function useSolanceProgram() {
   const program = useMemo(() => {
     if (!connection) return null;
 
-    // On n’a pas besoin d’un wallet connecté pour lire,
-    // donc si pas de pubkey → on passe un “fake wallet” minimal.
     const provider = new AnchorProvider(
       connection,
-      (wallet as any) ?? ({} as any),
+      // @solana/wallet-adapter-react est compatible avec AnchorProvider
+      wallet as any,
       AnchorProvider.defaultOptions()
     );
 
     return new Program(idl as Idl, provider);
-  }, [
-    connection,
-    // très important : on ne dépend QUE de la pubkey,
-    // pas de l’objet wallet entier (qui change souvent de référence)
-    wallet.publicKey?.toBase58(),
-  ]);
+  }, [connection, wallet.publicKey?.toBase58()]);
 
   return program;
 }
