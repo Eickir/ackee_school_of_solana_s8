@@ -1,0 +1,855 @@
+{
+  "address": "9os8f9dUNrZzg53kjGb1wj1stMabFFj4fuRnrF9pCjR6",
+  "metadata": {
+    "name": "solance",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "choose_proposal_ix",
+      "discriminator": [
+        29,
+        142,
+        222,
+        167,
+        215,
+        169,
+        93,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "client_account",
+          "writable": true
+        },
+        {
+          "name": "contract",
+          "writable": true
+        },
+        {
+          "name": "proposal_account",
+          "writable": true
+        },
+        {
+          "name": "contractor_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "contract"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_payment_ix",
+      "discriminator": [
+        133,
+        216,
+        238,
+        61,
+        55,
+        144,
+        173,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "client",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "contractor",
+          "writable": true
+        },
+        {
+          "name": "client_account",
+          "writable": true
+        },
+        {
+          "name": "contractor_account",
+          "writable": true
+        },
+        {
+          "name": "contract",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "contract"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_client_ix",
+      "discriminator": [
+        143,
+        241,
+        163,
+        103,
+        144,
+        132,
+        65,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "client",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "client_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  105,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "client"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_contract_ix",
+      "discriminator": [
+        100,
+        13,
+        51,
+        143,
+        253,
+        154,
+        5,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "client_account",
+          "writable": true
+        },
+        {
+          "name": "contract_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "client_account"
+              },
+              {
+                "kind": "account",
+                "path": "client_account.next_contract_id",
+                "account": "Client"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "topic",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "initialize_contractor_ix",
+      "discriminator": [
+        199,
+        254,
+        189,
+        137,
+        136,
+        138,
+        66,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "contractor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "contractor_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "contractor"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_proposal_ix",
+      "discriminator": [
+        87,
+        14,
+        84,
+        97,
+        130,
+        113,
+        30,
+        95
+      ],
+      "accounts": [
+        {
+          "name": "contractor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "contract",
+          "writable": true
+        },
+        {
+          "name": "contractor_account",
+          "writable": true
+        },
+        {
+          "name": "proposal_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "contractor_account"
+              },
+              {
+                "kind": "account",
+                "path": "contractor_account.next_proposal_id",
+                "account": "Contractor"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "mark_work_done_ix",
+      "discriminator": [
+        105,
+        96,
+        254,
+        43,
+        242,
+        249,
+        32,
+        244
+      ],
+      "accounts": [
+        {
+          "name": "contractor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "contractor_account",
+          "writable": true
+        },
+        {
+          "name": "contract",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_proposal_ix",
+      "discriminator": [
+        40,
+        52,
+        56,
+        42,
+        18,
+        128,
+        120,
+        25
+      ],
+      "accounts": [
+        {
+          "name": "contractor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "contractor_account",
+          "writable": true
+        },
+        {
+          "name": "proposal_account",
+          "writable": true
+        },
+        {
+          "name": "contract"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Client",
+      "discriminator": [
+        221,
+        237,
+        145,
+        143,
+        170,
+        194,
+        133,
+        115
+      ]
+    },
+    {
+      "name": "Contract",
+      "discriminator": [
+        172,
+        138,
+        115,
+        242,
+        121,
+        67,
+        183,
+        26
+      ]
+    },
+    {
+      "name": "Contractor",
+      "discriminator": [
+        215,
+        114,
+        255,
+        190,
+        245,
+        64,
+        47,
+        96
+      ]
+    },
+    {
+      "name": "Proposal",
+      "discriminator": [
+        26,
+        94,
+        189,
+        187,
+        116,
+        136,
+        53,
+        33
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "ClientInitialized",
+      "discriminator": [
+        60,
+        34,
+        17,
+        252,
+        226,
+        194,
+        243,
+        76
+      ]
+    },
+    {
+      "name": "ContractInitialized",
+      "discriminator": [
+        233,
+        69,
+        33,
+        152,
+        208,
+        61,
+        150,
+        192
+      ]
+    },
+    {
+      "name": "ContractorInitialized",
+      "discriminator": [
+        221,
+        251,
+        138,
+        167,
+        96,
+        10,
+        47,
+        44
+      ]
+    },
+    {
+      "name": "ProposalInitialized",
+      "discriminator": [
+        148,
+        198,
+        58,
+        182,
+        198,
+        50,
+        13,
+        60
+      ]
+    },
+    {
+      "name": "ProposalUpdated",
+      "discriminator": [
+        1,
+        180,
+        176,
+        2,
+        248,
+        222,
+        222,
+        242
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "UnauthorizedAccount",
+      "msg": "This account is not authorized to call this instruction"
+    },
+    {
+      "code": 6001,
+      "name": "TitleTooLong",
+      "msg": "Cannot initialize the contract, title is too long"
+    },
+    {
+      "code": 6002,
+      "name": "TopicTooLong",
+      "msg": "Cannot initialize the contract, topic is too long"
+    },
+    {
+      "code": 6003,
+      "name": "ProposalCannotBeUpdated",
+      "msg": "Proposal is already accepted. You can't update it."
+    },
+    {
+      "code": 6004,
+      "name": "ContractNotOpened",
+      "msg": "Contract is not in Opened status"
+    },
+    {
+      "code": 6005,
+      "name": "ContractAlreadyHasContractor",
+      "msg": "Contract already has a contractor"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidProposalForContract",
+      "msg": "Proposal does not belong to this contract"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidContractorForProposal",
+      "msg": "ContractorAccount does not match proposal contractor"
+    },
+    {
+      "code": 6008,
+      "name": "ContractNotAccepted",
+      "msg": "Contract is not in Accepted status"
+    },
+    {
+      "code": 6009,
+      "name": "ContractNotClosed",
+      "msg": "Contract is not in Closed status"
+    },
+    {
+      "code": 6010,
+      "name": "MissingAmount",
+      "msg": "Contract has no amount set"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidContractorForContract",
+      "msg": "ContractorAccount does not match contract's contractor"
+    },
+    {
+      "code": 6012,
+      "name": "InsufficientClientFunds",
+      "msg": "Client does not have enough SOL to accept this proposal"
+    }
+  ],
+  "types": [
+    {
+      "name": "Client",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_contract_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClientInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Contract",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractor",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "contract_id",
+            "type": "u64"
+          },
+          {
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "topic",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "Status"
+              }
+            }
+          },
+          {
+            "name": "accepted_proposal_id",
+            "type": {
+              "option": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ContractInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "contract_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Contractor",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_proposal_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ContractorInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Proposal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "contract",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal_id",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProposalInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "contract",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal_id",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProposalUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "contract",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal_id",
+            "type": "u64"
+          },
+          {
+            "name": "old_amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Status",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Opened"
+          },
+          {
+            "name": "Accepted"
+          },
+          {
+            "name": "Closed"
+          },
+          {
+            "name": "Paid"
+          }
+        ]
+      }
+    }
+  ]
+}
